@@ -1,20 +1,31 @@
+use std::env;
+use dotenv::dotenv;
 use crate::client::Client;
+use client::model::events::Intent;
+use client::model::events::Intent::{UserJoin, UserLeave, Chat};
 
-mod client;
+pub mod client;
 
 #[tokio::main]
 async fn main() {
+    dotenv().ok();
 
     println!("connecting");
 
-    let mut client = Client::connect(String::from("fe8705ba-0ac6-4ebb-bb5c-d6f3798dd2dc"),String::from("dis2sBw_nqkYEFdttYbMVQ")).await;
+    let client = {
+        let bot_id = env::var("BOT_ID").expect("Could not load bot id from .env");
+        let bot_token = env::var("BOT_TOKEN").expect("Could not load token from .env");
+        let intents: Vec<Intent> = vec![UserLeave, UserJoin, Chat];
+
+        Client::connect(bot_id, bot_token, intents).await
+    };
 
     println!("listening");
 
     loop {
-        client.get_next_event().await;
+        if let Some(event) = client.try_next_event().await {
+            println!("event: {:?}", event)
+        }
     }
-
-
 }
 
