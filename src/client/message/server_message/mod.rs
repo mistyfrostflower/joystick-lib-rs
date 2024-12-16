@@ -1,6 +1,7 @@
 
 use chrono::{DateTime, FixedOffset};
 use serde_json::Value;
+use tracing::{trace, warn};
 use crate::client::model::events::Event;
 use crate::client::model::events::Event::Connected;
 
@@ -24,7 +25,7 @@ pub(crate) fn timestamp_to_unix(time_str: String) -> Option<i64> {
     match utc_time {
         Ok(time) => { Some(time.timestamp_millis()) }
         Err(err) => {
-            println!("could not convert timestamp: {} - {}", time_str, err);
+            warn!("could not convert timestamp: {} - {}", time_str, err);
             None
         }
     }
@@ -41,13 +42,12 @@ pub(crate) enum ServerMessage {
 
 impl ServerMessage {
     pub(crate) fn from_str(msg: String) -> Option<Self> {
-
-        //println!("parsing...");
+        trace!("parsing string into server message");
         
         // convert to untyped json
         let mut message: Value = serde_json::from_str(&msg).unwrap();
         if !message.is_object() {
-            println!("recieved empty message / invalid json?");
+            warn!("recieved empty message / invalid json?");
             return None;
         }
 
@@ -57,7 +57,7 @@ impl ServerMessage {
             let m_type = { 
                 let try_type = m_type?.as_str();
                 if try_type.is_none() {
-                    println!("message type is not string?");
+                    warn!("message type is not string?");
                 }
                 try_type?
             };
@@ -65,22 +65,22 @@ impl ServerMessage {
             return match m_type {
                 // protocol messages
                 "ping" => {
-                    //println!("got ping");
+                    trace!("server message is ping");
                     Some(ServerMessage::Ping(serde_json::from_value(message).unwrap()))
                 }
                 "reject_subscription" => {
-                    //println!("got reject sub");
+                    trace!("server message is reject subscription");
                     Some(ServerMessage::Subscribe(serde_json::from_value(message).unwrap()))
                 }
                 "confirm_subscription" => {
-                    //println!("got confirm sub");
+                    trace!("server message is confirm subscription");
                     Some(ServerMessage::Subscribe(serde_json::from_value(message).unwrap()))
                 }
                 "welcome" => {
                     None
                 }
                 &_ => {
-                    println!("Unknown message type: {}", m_type);
+                    warn!("Unknown message type: {}", m_type);
                     None
                 }
             };
@@ -91,30 +91,30 @@ impl ServerMessage {
                 if let Some(payload) = payload.as_object() {
                     let event_type = payload.get("event")?.as_str()?;
                     
-                    
-                    
                     return match event_type {
                         "ChatMessage" => {
-                           // println!("got chat message");
+                            trace!("server message is chat message");
                             Some(ServerMessage::Chat(serde_json::from_value(message).unwrap()))
                         }
                         "UserPresence" => {
+                            trace!("server message is user presence");
                             //println!("got user presence");
                             Some(ServerMessage::UserPresence(serde_json::from_value(message).unwrap()))
                         }
                         "StreamEvent" => {
+                            trace!("server message is stream event");
                             //println!("got stream event");
                             Some(ServerMessage::StreamEvent(serde_json::from_value(message).unwrap()))
                         }
                         _ => {
-                            println!("Unknown message type: {}", event_type);
+                            warn!("Unknown message type: {}", event_type);
                             None
                         }
                     };
                 }
             }
         }
-        println!("Could not parse message: {}", msg.to_string());
+        warn!("Could not parse message: {}", msg.to_string());
         None
     }
 
@@ -122,22 +122,23 @@ impl ServerMessage {
         
         match self {
             ServerMessage::StreamEvent(stream_event) => {
-                //println!("stream event");
-                None
+                trace!("converting server message into stream event");
+                stream_event.into()
             }
             ServerMessage::Ping(ping) => {
-                //println!("ping");
+                trace!("converting server message into ping event");
                 ping.into()
             }
             ServerMessage::Chat(chat_msg) => {
-                //println!("chat");
+                trace!("converting server message into chat event");
                 chat_msg.into()
             }
-            ServerMessage::Subscribe(cable_sub) => {
+            ServerMessage::Subscribe(_cable_sub) => {
+                trace!("converting server message connected event");
                 Some(Connected)
             }
             ServerMessage::UserPresence(user_presence) => {
-                //println!("user presence");
+                trace!("converting server message user presence event");
                 user_presence.into()
             }
         }

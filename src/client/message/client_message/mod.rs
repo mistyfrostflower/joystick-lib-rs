@@ -1,7 +1,6 @@
 pub(crate) mod subscribe;
 pub(crate) mod message;
 
-use serde::{Deserialize, Serialize};
 use subscribe::Subscribe;
 use message::Message;
 

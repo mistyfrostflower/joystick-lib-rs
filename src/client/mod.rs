@@ -5,11 +5,11 @@ use std::sync::Arc;
 use base64::Engine;
 use base64::prelude::BASE64_URL_SAFE;
 use chrono::Utc;
-use tokio::io::{AsyncReadExt, AsyncWriteExt};
 use tokio::net::TcpStream;
 use tokio::sync::Mutex;
 use tokio_tungstenite::tungstenite::{Message as WsMessage, Message};
 use tokio_tungstenite::{connect_async_tls_with_config, MaybeTlsStream, WebSocketStream};
+use tracing::{debug, info};
 use tungstenite::ClientRequestBuilder;
 use tungstenite::http::Uri;
 
@@ -38,7 +38,7 @@ impl Client {
         let uri = Uri::from_str(&(String::from("wss://joystick.tv/cable?token=") + token.as_str())).unwrap();
         let req = ClientRequestBuilder::new(uri).with_sub_protocol("actioncable-v1-json");
 
-        let (ws_stream, resp) = connect_async_tls_with_config(req, None, false, None).await.unwrap();
+        let (ws_stream, _resp) = connect_async_tls_with_config(req, None, false, None).await.unwrap();
 
         let (write, read) = ws_stream.split();
 
@@ -80,16 +80,16 @@ impl Client {
                 if let Some(parsed) = try_parsed {
                     Some(parsed)
                 } else {
-                    println!("could not parse message: {}", msg);
+                    debug!("could not parse message: {}", msg);
                     None
                 }
             }
             Message::Close(_) => {
-                println!("websocket connection closed by server");
+                info!("websocket connection closed by server");
                 None
             }
             _ => {
-                println!("other websocket msg");
+                debug!("other websocket msg");
                 None
             }
         }

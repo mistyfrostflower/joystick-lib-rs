@@ -1,4 +1,3 @@
-use serde::{Deserialize, Serialize};
 use crate::client::model::emote::Emote;
 
 #[derive(Debug)]

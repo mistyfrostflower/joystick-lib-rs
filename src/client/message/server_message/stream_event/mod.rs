@@ -90,11 +90,22 @@ impl Into<Option<Event>> for StreamEvent {
                     None
                 }
             }
-            StreamEvent::Followed { .. } => {
-                todo!()
+            StreamEvent::Followed { channel_id, metadata, ..} => {
+                if let Ok(meta) = serde_json::from_str::<events::follow::FollowMeta>(&metadata) {
+                    Some(Event::Follow(events::follow::Follow {
+                        user:meta.who,
+                        text: "".to_string(),
+                        channel_id,
+                    }))
+                } else {
+                    None
+                }
             }
-            StreamEvent::DeviceConnected { .. } => {
-                todo!()
+            StreamEvent::DeviceConnected { channel_id, ..} => {
+                    Some(Event::DeviceStatus(events::device_status::DeviceStatus {
+                        connected: true,
+                        channel_id,
+                    }))
             }
         }
     }

@@ -1,7 +1,6 @@
-use serde::{Deserialize, Serialize};
-use crate::client::message::server_message::user_presence::UserPresenceWrapper;
-use crate::client::model::events::Event;
 use crate::client::model;
+use crate::client::model::events::Event;
+use serde::{Deserialize, Serialize};
 
 #[derive(Serialize, Deserialize, Debug)]
 pub struct Ping {
