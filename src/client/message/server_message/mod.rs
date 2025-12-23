@@ -38,11 +38,12 @@ pub(crate) enum ServerMessage {
     Chat(chat::ChatMessageWrapper),
     Subscribe(subscription::SubscriptionResponse),
     UserPresence(user_presence::UserPresenceWrapper),
+    UnknownMessage(String)
 }
 
 impl ServerMessage {
     pub(crate) fn from_str(msg: String) -> Option<Self> {
-        trace!("parsing string into server message");
+        //trace!("parsing string into server message");
         
         // convert to untyped json
         let mut message: Value = serde_json::from_str(&msg).unwrap();
@@ -65,7 +66,7 @@ impl ServerMessage {
             return match m_type {
                 // protocol messages
                 "ping" => {
-                    trace!("server message is ping");
+                    //trace!("server message is ping");
                     Some(ServerMessage::Ping(serde_json::from_value(message).unwrap()))
                 }
                 "reject_subscription" => {
@@ -103,7 +104,6 @@ impl ServerMessage {
                         }
                         "StreamEvent" => {
                             trace!("server message is stream event");
-                            //println!("got stream event");
                             Some(ServerMessage::StreamEvent(serde_json::from_value(message).unwrap()))
                         }
                         _ => {
@@ -126,7 +126,7 @@ impl ServerMessage {
                 stream_event.into()
             }
             ServerMessage::Ping(ping) => {
-                trace!("converting server message into ping event");
+                //trace!("converting server message into ping event");
                 ping.into()
             }
             ServerMessage::Chat(chat_msg) => {
@@ -138,8 +138,12 @@ impl ServerMessage {
                 Some(Connected)
             }
             ServerMessage::UserPresence(user_presence) => {
-                trace!("converting server message user presence event");
+                trace!("converting server message into user presence event");
                 user_presence.into()
+            }
+            ServerMessage::UnknownMessage(str) => {
+                trace!("converting unknown server message into event");
+                Some(Event::UnknownEvent(str))
             }
         }
     }

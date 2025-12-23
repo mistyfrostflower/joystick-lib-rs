@@ -81,7 +81,7 @@ impl Client {
                     Some(parsed)
                 } else {
                     debug!("could not parse message: {}", msg);
-                    None
+                    Some(ServerMessage::UnknownMessage(msg))
                 }
             }
             Message::Close(_) => {
@@ -104,13 +104,12 @@ impl Client {
         None
     }
 
-    pub(crate) async fn try_next_event(self: &Arc<Self>) -> Option<Event> {
+    pub async fn try_next_event(self: &Arc<Self>) -> Option<Event> {
         let server_message = self._next_server_msg().await;
 
         //println!("server message: {:?}",server_message);
 
         let event = server_message?.to_event()?;
-
         
         if event.included_by_intents(&self.intents) {
             Some(event)
