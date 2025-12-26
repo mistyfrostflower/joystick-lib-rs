@@ -45,6 +45,7 @@ pub enum Event {
     Follow(Follow),
     DeviceStatus(device_status::DeviceStatus),
     UnknownEvent(String),
+    Welcome,
 }
 
 impl Event {
@@ -60,7 +61,8 @@ impl Event {
             Event::Wheelspin(_) => intents.contains(&Intent::Wheelspin),
             Event::Follow(_) => intents.contains(&Intent::Follow),
             Event::DeviceStatus(_) => intents.contains(&Intent::DeviceStatus),
-            Event::UnknownEvent(_) => intents.contains(&Intent::UnknownEvents)
+            Event::UnknownEvent(_) => intents.contains(&Intent::UnknownEvents),
+            Event::Welcome => false,
         }
     }
 }

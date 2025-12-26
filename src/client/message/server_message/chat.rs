@@ -77,7 +77,6 @@ pub(crate) struct ChatMessageWrapper {
 
 impl Into<Option<Event>> for ChatMessageWrapper {
     fn into(self) -> Option<Event> {
-        //println!("parsing chat message into event");
         let mut emotes:Vec<emote::Emote> = Vec::with_capacity(self.message.emotes_used.len());
 
         for emote in self.message.emotes_used {

@@ -1,7 +1,7 @@
 
 use chrono::{DateTime, FixedOffset};
 use serde_json::Value;
-use tracing::{trace, warn};
+use tracing::{error, trace, warn};
 use crate::client::model::events::Event;
 use crate::client::model::events::Event::Connected;
 
@@ -38,27 +38,29 @@ pub(crate) enum ServerMessage {
     Chat(chat::ChatMessageWrapper),
     Subscribe(subscription::SubscriptionResponse),
     UserPresence(user_presence::UserPresenceWrapper),
-    UnknownMessage(String)
+    UnknownMessage(String),
+    Welcome,
 }
 
 impl ServerMessage {
     pub(crate) fn from_str(msg: String) -> Option<Self> {
         //trace!("parsing string into server message");
         
-        // convert to untyped json
+        // convert to untyped JSON
         let mut message: Value = serde_json::from_str(&msg).unwrap();
         if !message.is_object() {
-            warn!("recieved empty message / invalid json?");
+            error!("received empty message / invalid json from joystick server, this is very odd");
             return None;
         }
 
         let msg_obj = message.as_object_mut()?;
         let m_type = msg_obj.get("type");
         if m_type.is_some() {
+            // has type field, is a protocol message
             let m_type = { 
                 let try_type = m_type?.as_str();
                 if try_type.is_none() {
-                    warn!("message type is not string?");
+                    warn!("message has a type field but the value is not a string? this is very odd and does not follow the actionable spec");
                 }
                 try_type?
             };
@@ -78,15 +80,15 @@ impl ServerMessage {
                     Some(ServerMessage::Subscribe(serde_json::from_value(message).unwrap()))
                 }
                 "welcome" => {
-                    None
+                    Some(ServerMessage::Welcome)
                 }
                 &_ => {
-                    warn!("Unknown message type: {}", m_type);
+                    warn!("Unknown protocol message type: {}", m_type);
                     None
                 }
             };
         } else {
-            // api messages
+            // does not have a type field is an api message
             let t_payload = msg_obj.get("message");
             if let Some(payload) = t_payload {
                 if let Some(payload) = payload.as_object() {
@@ -99,7 +101,6 @@ impl ServerMessage {
                         }
                         "UserPresence" => {
                             trace!("server message is user presence");
-                            //println!("got user presence");
                             Some(ServerMessage::UserPresence(serde_json::from_value(message).unwrap()))
                         }
                         "StreamEvent" => {
@@ -117,10 +118,11 @@ impl ServerMessage {
         warn!("Could not parse message: {}", msg.to_string());
         None
     }
+}
 
-    pub(crate) fn to_event(self) -> Option<Event> {
-        
-        match self {
+impl From<ServerMessage> for Option<Event> {
+    fn from(value: ServerMessage) -> Option<Event> {
+        match value {
             ServerMessage::StreamEvent(stream_event) => {
                 trace!("converting server message into stream event");
                 stream_event.into()
@@ -145,8 +147,7 @@ impl ServerMessage {
                 trace!("converting unknown server message into event");
                 Some(Event::UnknownEvent(str))
             }
+            ServerMessage::Welcome => {Some(Event::Welcome)}
         }
     }
 }
-
-

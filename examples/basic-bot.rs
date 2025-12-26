@@ -1,12 +1,11 @@
-use crate::client::Client;
-use client::model::events::Intent;
-use client::model::events::Intent::{Chat, StreamStart, UserJoin, UserLeave};
+use joysticktv::client::Client;
+use joysticktv::client::model::events::Intent;
+use joysticktv::client::model::events::Intent::{Chat, StreamStart, UserJoin, UserLeave};
 use dotenv::dotenv;
 use std::env;
+use meby::Meby;
 use tracing::{info, Level};
 use tracing_subscriber::FmtSubscriber;
-
-pub mod client;
 
 #[tokio::main]
 async fn main() {
@@ -18,20 +17,23 @@ async fn main() {
 
     dotenv().ok();
 
-    info!("connecting");
+    info!("building");
 
     let client = {
         let bot_id = env::var("BOT_ID").expect("Could not load bot id from .env");
         let bot_token = env::var("BOT_TOKEN").expect("Could not load token from .env");
         let intents: Vec<Intent> = vec![UserLeave, UserJoin, Chat, StreamStart];
-
-        Client::connect(bot_id, bot_token, intents).await
+        Client::new(bot_id, &bot_token, intents)
     };
+
+    info!("connecting");
+
+    client.connect().await.expect("Could not connect");
 
     info!("listening");
 
     loop {
-        if let Some(event) = client.try_next_event().await {
+        if let Meby::Yes(event) = client.try_next_event().await {
             info!("event: {:?}", event)
         }
     }
